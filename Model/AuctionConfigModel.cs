@@ -47,6 +47,12 @@ namespace WindowsFormsApp1.Model
 
         public Dictionary<string, (ROLE, CATEGORIES, string)> PlayerList { get; set; }
 
+        [JsonProperty("Topup1")]
+        public long Topup1 { get; set; } = 200000;
+
+        [JsonProperty("Topup2")]
+        public long Topup2 { get; set; } = 500000;
+
         public void operation()
         {
             PlayerList = FullPlayerList?.ToDictionary(x => x.Name.ToLower(), x => (x.Role, x.Category, x.imageLocation));

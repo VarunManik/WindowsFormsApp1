@@ -1,10 +1,10 @@
 ﻿using System;
+using System.CodeDom.Compiler;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using System.Xml.Linq;
-using Newtonsoft.Json.Linq;
 using WindowsFormsApp1.Model;
 using Application = System.Windows.Forms.Application;
 
@@ -14,8 +14,14 @@ namespace WindowsFormsApp
     {
         private ComboBox searchBox;
         private Button submitButton;
+        //private Button deleteButton;
+        private Button randomButton;
         private Label nameLabel;
         PresentationForm PresentationForm = null;
+        private ComboBox RandomBox;
+
+
+
         public NameDetailsApp()
         {
             AuctionConfig.ReadConfig();
@@ -39,15 +45,40 @@ namespace WindowsFormsApp
                 Font = new Font("Arial", 12)
             };
 
+            RandomBox = new ComboBox
+            {
+                Location = new System.Drawing.Point(50, 50),
+                Width = 100,
+                Height = 50,
+                AutoCompleteMode = AutoCompleteMode.SuggestAppend,
+                AutoCompleteSource = AutoCompleteSource.CustomSource,
+                Font = new Font("Arial", 12)
+            };
+
             var autoComplete = new AutoCompleteStringCollection();
 
             autoComplete.AddRange(AuctionConfig.config.FullPlayerList.Select(x => x.Name).ToArray());
 
             searchBox.AutoCompleteCustomSource = autoComplete;
 
-            Text = "Start APplication";
+
+            var autoComplete1 = new AutoCompleteStringCollection();
+            var enumList = Enum.GetValues(typeof(CATEGORIES))
+                                    .Cast<CATEGORIES>()         // Cast to the enum type
+                                    .Select(e => e.ToString()) // Convert to string
+                                    .ToArray();
+
+
+            autoComplete1.AddRange(enumList);
+
+            RandomBox.AutoCompleteCustomSource = autoComplete1;
+
+
+            Text = "Start Application";
             Size = new System.Drawing.Size(400, 200);
             submitButton = new Button { Text = "Submit", Width = 100, Height = 40 };
+            //deleteButton = new Button { Text = "Delete", Width = 100, Height = 40 };
+            randomButton = new Button { Text = "Random", Width = 100, Height = 40 };
 
             var flowPanel = new FlowLayoutPanel
             {
@@ -62,11 +93,17 @@ namespace WindowsFormsApp
             flowPanel.Controls.Add(nameLabel);
             flowPanel.Controls.Add(searchBox);
             flowPanel.Controls.Add(submitButton);
+            flowPanel.Controls.Add(RandomBox);
+            //flowPanel.Controls.Add(deleteButton);
+            flowPanel.Controls.Add(randomButton);
 
             searchBox.Margin = new Padding(10);
             submitButton.Margin = new Padding(10);
+            //deleteButton.Margin = new Padding(10);
 
             submitButton.Click += OnSubmitButtonClick;
+            //deleteButton.Click += OnDeleteButtonClick;
+            randomButton.Click += OnRandomButtonClick;
 
             var mainPanel = new Panel
             {
@@ -88,6 +125,70 @@ namespace WindowsFormsApp
             WindowState = FormWindowState.Maximized;
         }
 
+        private void OnRandomButtonClick(object sender, EventArgs e)
+        {
+            string name = RandomBox.Text;
+
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+
+            List<string> keysList = TeamDetails.Instance.cacheDetails.UnSoldList.Where(z => z.Value.Item2.ToString().ToLower() == name.ToLower()).Select(x => x.Key).ToList();
+
+
+            if(keysList.Count == 0)
+            {
+                MessageBox.Show($"All Players from Category {name} - completed", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+
+            Random random = new Random();
+
+            // Get a random index
+            int randomIndex = random.Next(keysList.Count);
+
+            // Get the random element
+            string randomElement = keysList[randomIndex];
+
+            searchBox.Text = randomElement;
+
+        }
+
+        //private void OnDeleteButtonClick(object sender, EventArgs e)
+        //{
+        //    string name = searchBox.Text;
+
+        //    if (!string.IsNullOrWhiteSpace(name) && AuctionConfig.config.PlayerList.ContainsKey(name.ToLower()))
+        //    {
+        //        var val = MessageBox.Show($"Want to delete {name}", "Delete Operation", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+        //        if(val == DialogResult.Yes)
+        //        {
+        //            if (TeamDetails.Instance.cacheDetails.SoldList.ContainsKey(name.ToLower())) 
+        //            {
+        //                TeamDetails.Instance.cacheDetails.SoldList.Remove(name.ToLower());
+
+        //                foreach(var i in  TeamDetails.Instance.cacheDetails.Details.Keys)
+        //                {
+        //                    if (TeamDetails.Instance.cacheDetails.Details[i].playerInfos.ContainsKey(name.ToLower()))
+        //                    {
+        //                        TeamDetails.Instance.cacheDetails.Details[i].playerInfos.Remove(name.ToLower());
+        //                        TeamDetails.Instance.UpdateTeamPurse(i);
+        //                        break;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            // do nothing 
+        //        }
+        //    }
+        //    else
+        //    {
+        //        MessageBox.Show("Please enter a valid name. or Name not in the List", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        //    }
+        //}
+
         private void OnSubmitButtonClick(object sender, EventArgs e)
         {
             string name = searchBox.Text;
@@ -95,14 +196,14 @@ namespace WindowsFormsApp
 
             if (!string.IsNullOrWhiteSpace(name) && AuctionConfig.config.PlayerList.ContainsKey(name.ToLower()))
             {
-              
 
-                if(PresentationForm != null)
+
+                if (PresentationForm != null)
                 {
                     PresentationForm.RefreshName(name);
                 }
                 else
-                { 
+                {
                     PresentationForm = new PresentationForm(name, this);
                 }
                 PresentationForm.Show();
@@ -145,7 +246,7 @@ namespace WindowsFormsApp
                 Width = 600,
                 Height = 800,
                 Font = new System.Drawing.Font("Arial", 24),
-                Location = new System.Drawing.Point(200,40)
+                Location = new System.Drawing.Point(200, 40)
             };
             string value = $" Name : {name.ToUpper()} \n Category : {AuctionConfig.config.PlayerList[name.ToLower()].Item2} \n" +
             $" Role : {AuctionConfig.config.PlayerList[name.ToLower()].Item1}";
@@ -175,7 +276,7 @@ namespace WindowsFormsApp
             Controls.Add(pictureBox);
 
             Text = "Present Details";
-            WindowState = FormWindowState.Maximized ;
+            WindowState = FormWindowState.Maximized;
 
             BackColor = Color.White;
         }
@@ -403,7 +504,7 @@ namespace WindowsFormsApp
                 AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
 
-            var details = TeamDetails.Instance.Details;
+            var details = TeamDetails.Instance.cacheDetails.Details;
 
             for (int i = 0; i < totalTeams; i++)
             {
@@ -427,7 +528,7 @@ namespace WindowsFormsApp
                 };
 
                 var toolTip = new ToolTip();
-                toolTip.SetToolTip(button, $"{TeamDetails.Instance.Details[AuctionConfig.config.TeamNames[i]].MinPlayerReq.ToString()}");
+                toolTip.SetToolTip(button, $"{TeamDetails.Instance.cacheDetails.Details[AuctionConfig.config.TeamNames[i]].MinPlayerReq.ToString()}");
 
 
                 Label button1Label = new Label
@@ -474,7 +575,7 @@ namespace WindowsFormsApp
 
             string tname = TeamBox.SelectedItem.ToString();
 
-            List<(CATEGORIES, string, string)> tuples = TeamDetails.Instance.Details[tname].playerInfos.Select(kv => (kv.Value.PlayerCategory, kv.Key, kv.Value.PriceSold.ToString())).OrderBy(z => z.Item1).ToList();
+            List<(CATEGORIES, string, string)> tuples = TeamDetails.Instance.cacheDetails.Details[tname].playerInfos.Select(kv => (kv.Value.PlayerCategory, kv.Key, kv.Value.PriceSold.ToString())).OrderBy(z => z.Item1).ToList();
 
 
             foreach (var item in tuples)
@@ -496,7 +597,7 @@ namespace WindowsFormsApp
             Button CurrentButton = sender as Button;
             Label Currentlabel = listsOfButtons.Where(x => x.Name == CurrentButton.Name).First();
 
-            if (!EligiblityToBid(CurrentButton.Name, out string reason))
+            if (!EligiblityToBid(CurrentButton.Name, Currentlabel, out string reason))
             {
                 MessageBox.Show($"Failed due to - {reason}", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
@@ -520,12 +621,12 @@ namespace WindowsFormsApp
             UpdateHistoryDisplay();
         }
 
-        private bool EligiblityToBid(string tName, out string reason)
+        private bool EligiblityToBid(string tName, Label Currentlabel, out string reason)
         {
             reason = string.Empty;
 
 
-            var details = TeamDetails.Instance.Details[tName];
+            var details = TeamDetails.Instance.cacheDetails.Details[tName];
 
             if (historyStack.Count() != 0)
             {
@@ -552,39 +653,66 @@ namespace WindowsFormsApp
 
             var topup = details.PurseUtilized + details.MinBaseRequired - AuctionConfig.config.TotalPurseValue;
 
-            if (CurrentplayerValue > value)
-            {
-                bool forced = WantToTakeTopup(topup);
-                
-                if(forced == true)
-                {
-                    if(value <= -400000)
-                    {
-                        reason = "TOP up LIMIT exceeded";
-                        return false;
-                    }
-                    return true;
-                }
+            bool forced = true;
 
-                reason = "Low on Budget !!!";
-                return false;
+            while (CurrentplayerValue > value && forced)
+            {
+                forced = WantToTakeTopup(CurrentplayerValue - value, tName);
+                value = details.PurseRem - (details.MinBaseRequired - AuctionConfig.config.CategoryModel[playerInfo.PlayerCategory].Base);
+
+                details = TeamDetails.Instance.cacheDetails.Details[tName];
             }
 
-            return true;
-        }
-
-        private bool WantToTakeTopup(long topup)
-        {
-            var result = MessageBox.Show($"Do you want to take topup? {topup}", "Confirmation", MessageBoxButtons.OKCancel);
-
-            if (DialogResult.OK == result)
+            if (forced == true)
             {
+                Currentlabel.Text = $" Purse Utilized : {details.PurseUtilized} \n Remaining Purse : {details.PurseRem} \n BaseRequired : {details.MinBaseRequired} \n ExcessBid : {details.PurseRem - details.MinBaseRequired + AuctionConfig.config.CategoryModel[playerInfo.PlayerCategory].Base} \n";
+                //if (CurrentplayerValue <= value)
+                //{
+                //    reason = "TOP up LIMIT exceeded";
+                //    return false;
+                //}
                 return true;
             }
-            else
+
+            reason = "Low on Budget !!!";
+            return false;
+        }
+
+        private bool WantToTakeTopup(long topup, string tName)
+        {
+            if (TeamDetails.Instance.cacheDetails.Details[tName].isTopUp1Used == false)
             {
-                return false;
+                var result = MessageBox.Show($"Do you want to take topup 1? {topup}", "Confirmation", MessageBoxButtons.OKCancel);
+
+                if (DialogResult.OK == result)
+                {
+                    TeamDetails.Instance.cacheDetails.Details[tName].isTopUp1Used = true;
+                    TeamDetails.Instance.cacheDetails.Details[tName].TotalPurse = AuctionConfig.config.TotalPurseValue + AuctionConfig.config.Topup1;
+                    TeamDetails.Instance.cacheDetails.Details[tName].PurseRem += AuctionConfig.config.Topup1;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
+            if (TeamDetails.Instance.cacheDetails.Details[tName].isTopUp2Used == false)
+            {
+                var result = MessageBox.Show($"Do you want to take topup 2? {topup}", "Confirmation", MessageBoxButtons.OKCancel);
+
+                if (DialogResult.OK == result)
+                {
+                    TeamDetails.Instance.cacheDetails.Details[tName].isTopUp2Used = true;
+                    TeamDetails.Instance.cacheDetails.Details[tName].TotalPurse = AuctionConfig.config.TotalPurseValue + AuctionConfig.config.Topup1 + AuctionConfig.config.Topup2;
+                    TeamDetails.Instance.cacheDetails.Details[tName].PurseRem += AuctionConfig.config.Topup2;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void updateLabel()
+        {
         }
 
         private void OnBackButtonClick(object sender, EventArgs e)
@@ -668,23 +796,46 @@ namespace WindowsFormsApp
 
                 if (result == DialogResult.OK)
                 {
+                    TeamDetails.Instance.cacheDetails.SoldList[playerName] = new Tuple<string, long>(tName, CurrentplayerValue - Increment);
+
+                    if (TeamDetails.Instance.cacheDetails.UnSoldList.ContainsKey(playerName))
+                    {
+                        TeamDetails.Instance.cacheDetails.UnSoldList.Remove(playerName);
+                    }
+
+                    string stackString = StackToString(historyStack);
+                    playerInfo.BidHistory = stackString;
                     playerInfo.PriceSold = CurrentplayerValue - Increment;
-                    TeamDetails.Instance.Details[tName].playerInfos[playerName] = playerInfo;
-                    TeamDetails.Instance.Details[tName].PurseRem -= playerInfo.PriceSold;
-                    TeamDetails.Instance.Details[tName].PurseUtilized += playerInfo.PriceSold;
-                    TeamDetails.Instance.Details[tName].MinPlayerReq.diCategoryWiseCount[playerInfo.PlayerCategory]--;
-                    TeamDetails.Instance.Details[tName].MinPlayerReq.reqCount--;
-                    TeamDetails.Instance.Details[tName].MinBaseRequired = TeamDetails.GetBaseRequired(TeamDetails.Instance.Details[tName].MinPlayerReq.diCategoryWiseCount);
+                    TeamDetails.Instance.cacheDetails.Details[tName].playerInfos[playerName] = playerInfo;
+                    TeamDetails.Instance.cacheDetails.Details[tName].PurseRem -= playerInfo.PriceSold;
+                    TeamDetails.Instance.cacheDetails.Details[tName].PurseUtilized += playerInfo.PriceSold;
+                    TeamDetails.Instance.cacheDetails.Details[tName].MinPlayerReq.diCategoryWiseCount[playerInfo.PlayerCategory]--;
+                    TeamDetails.Instance.cacheDetails.Details[tName].MinPlayerReq.reqCount--;
+                    TeamDetails.Instance.cacheDetails.Details[tName].MinBaseRequired = TeamDetails.GetBaseRequired(TeamDetails.Instance.cacheDetails.Details[tName].MinPlayerReq.diCategoryWiseCount);
                     TeamDetails.SaveInCache();
                 }
                 else
                 {
                     return;
+
                 }
             }
             this.Close();
             this.Dispose();
             mainForm.Show();
+        }
+
+        private string StackToString(Stack<(Button TeamName, long Value)> historyStack)
+        {
+            var elements = new List<string>();
+
+            foreach (var kvp in historyStack)
+            {
+                elements.Add($"{kvp.TeamName.Text} Bids - {kvp.Value}");
+            }
+
+            // Join the elements into a single string
+            return string.Join(Environment.NewLine, elements);
         }
     }
 }

@@ -9,6 +9,9 @@ namespace WindowsFormsApp1.Model
 {
     public class PlayerList
     {
+        [JsonProperty("FORM NO")]
+        public string formNo { get; set; }
+        
         [JsonProperty("Name")]
         public string Name { get; set; }
 

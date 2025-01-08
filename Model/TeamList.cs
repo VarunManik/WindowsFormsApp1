@@ -8,9 +8,17 @@ using Newtonsoft.Json;
 
 namespace WindowsFormsApp1.Model
 {
+
+    public class Cache
+    {
+        public Dictionary<string, Tuple<string,long>> SoldList = new Dictionary<string, Tuple<string, long>>();
+        public Dictionary<string, (ROLE, CATEGORIES, string)> UnSoldList = new Dictionary<string, (ROLE, CATEGORIES, string)>();
+        public Dictionary<string, TeamInfo> Details;
+    }
+
     public class TeamDetails
     {
-        public Dictionary<string, TeamInfo> Details;
+        public Cache cacheDetails;
 
         public static void SaveInCache()
         {
@@ -20,7 +28,7 @@ namespace WindowsFormsApp1.Model
                 try
                 {
                     string path = @"C:\Users\Denve\Desktop\AuctionHelper\AuctionCache.json";
-                    var val = JsonConvert.SerializeObject(TeamDetails.Instance.Details);
+                    var val = JsonConvert.SerializeObject(TeamDetails.Instance.cacheDetails);
 
                     if (!File.Exists(path))
                     {
@@ -57,7 +65,7 @@ namespace WindowsFormsApp1.Model
                 }
             }
         }
-        private static Dictionary<string, TeamInfo> ReadFromCache()
+        private static Cache ReadFromCache()
         {
             try
             {
@@ -74,7 +82,7 @@ namespace WindowsFormsApp1.Model
                     }
                     if (!string.IsNullOrEmpty(val))
                     {
-                        return JsonConvert.DeserializeObject<Dictionary<string, TeamInfo>>(val);
+                        return JsonConvert.DeserializeObject<Cache>(val);
                     }
                 }
             }
@@ -82,6 +90,10 @@ namespace WindowsFormsApp1.Model
             {
 
             }
+
+            Cache cache = new Cache();
+
+
 
             var res = new Dictionary<string, TeamInfo>();
 
@@ -103,7 +115,11 @@ namespace WindowsFormsApp1.Model
 
                 res.Add(tname, tinfo);
             }
-            return res;
+
+            cache.UnSoldList = AuctionConfig.config.PlayerList;
+            cache.Details = res;
+
+            return cache;
         }
 
         public static long GetBaseRequired(Dictionary<CATEGORIES, int> diCategoryWiseCount)
@@ -134,7 +150,7 @@ namespace WindowsFormsApp1.Model
                         if (_instance == null)
                         {
                             _instance = new TeamDetails();
-                            _instance.Details = ReadFromCache();
+                            _instance.cacheDetails = ReadFromCache();
                         }
                     }
                 }
@@ -159,8 +175,11 @@ namespace WindowsFormsApp1.Model
         [JsonProperty("MinimumTeamReq")]
         public MinPlayerReq MinPlayerReq { get; set; }
 
-        [JsonProperty("TopUpValue")]
-        public long TopUpValue { get; set; } = 0;
+        [JsonProperty("isTopUp1Used")]
+        public bool isTopUp1Used { get; set; } = false;
+
+        [JsonProperty("isTopUp2used")]
+        public bool isTopUp2Used { get; set; } = false;
 
 
         [JsonProperty("playerList")]
@@ -175,6 +194,9 @@ namespace WindowsFormsApp1.Model
 
         [JsonProperty("PriceSold")]
         public long PriceSold { get; set; } = 0;
+
+        [JsonProperty("BidHistory")]
+        public string BidHistory { get; set; } = string.Empty;
     }
 
     public class MinPlayerReq
